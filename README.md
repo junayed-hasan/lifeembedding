@@ -510,10 +510,10 @@ If you use this work in your research, please cite:
 ```bibtex
 @software{lifeembedding2025,
   title={LifeEmbedding: Vector-Based Life Trajectory Analysis},
-  author={Hasan, Mohammad Junayed and Rameshbabu, Koushik},
+  author={Hasan, Mohammad Junayed, Rameshbabu, Koushik and Ghorbani, Soudeh},
   year={2025},
   institution={Johns Hopkins University},
-  url={https://github.com/yourusername/life-trajectory-embeddings}
+  url={https://github.com/junayed-hasan/life-trajectory-embeddings}
 }
 ```
 
