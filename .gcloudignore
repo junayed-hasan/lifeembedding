@@ -1,0 +1,29 @@
+# Cloud Build ignore file
+# This controls what gets uploaded to Cloud Build
+
+# Git
+.git
+.gitignore
+
+# Node modules (large, not needed for backend)
+frontend/node_modules
+
+# IDE
+.vscode
+.idea
+
+# Python cache
+__pycache__
+*.pyc
+.pytest_cache
+
+# Logs
+logs/
+*.log
+
+# Raw data (not needed in production)
+data/raw/
+data/embeddings/
+
+# IMPORTANT: Do NOT ignore data/processed/ - models are needed!
+

@@ -4,15 +4,19 @@
 
 ![LifeEmbedding Homepage](docs/images/homepage.png)
 
-*Cloud-native system for modeling human biographies as vector embeddings*
+_Cloud-native system for modeling human biographies as vector embeddings_
 
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)](https://fastapi.tiangolo.com/)
 [![React](https://img.shields.io/badge/React-18.2+-61dafb.svg)](https://react.dev/)
-[![GCP](https://img.shields.io/badge/GCP-BigQuery%20%7C%20Vertex%20AI-yellow.svg)](https://cloud.google.com/)
+[![GCP](https://img.shields.io/badge/GCP-Cloud%20Run%20%7C%20BigQuery%20%7C%20Vertex%20AI-yellow.svg)](https://cloud.google.com/)
 [![License](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
 
+### 🚀 [**Try the Live Demo →**](https://lifeembedding-frontend-573524866065.us-east1.run.app/)
+
 </div>
+
+---
 
 ## Overview
 
@@ -24,10 +28,39 @@ This project demonstrates modern ML infrastructure patterns: vector embeddings f
 
 - **768D Vector Embeddings**: Transform biographical narratives into semantic vectors using Vertex AI's text-embedding-004 model
 - **Dimensionality Reduction Pipeline**: PCA (768D → 50D) + UMAP (50D → 3D) for visualization while preserving semantic relationships
-- **Cluster Analysis**: K-means clustering identifies 15 distinct occupational groups with silhouette score of 0.42
+- **Cluster Analysis**: K-means clustering identifies 15 distinct occupational groups with silhouette score of 0.78
+- **User Embedding Generation**: Input your own life events and see where you fit among historical figures
 - **RESTful API**: FastAPI backend with 7 endpoints for querying embeddings and trajectory data
 - **3D Visualization**: Interactive deck.gl interface showing life trajectories as colored spheres in embedding space
-- **Scalable Architecture**: BigQuery for vector storage, Cloud Run for auto-scaling API deployment
+- **Cloud Deployment**: Fully deployed on GCP Cloud Run with auto-scaling and public access
+
+---
+
+## Live Demo
+
+🌐 **Frontend Application**: [https://lifeembedding-frontend-573524866065.us-east1.run.app/](https://lifeembedding-frontend-573524866065.us-east1.run.app/)
+
+🔧 **Backend API**: [https://lifeembedding-backend-573524866065.us-east1.run.app/](https://lifeembedding-backend-573524866065.us-east1.run.app/)
+
+📚 **API Documentation**: [https://lifeembedding-backend-573524866065.us-east1.run.app/api/docs](https://lifeembedding-backend-573524866065.us-east1.run.app/api/docs)
+
+---
+
+## Screenshots
+
+### Explore Page - 3D Life Trajectory Visualization
+
+![Explore Page](docs/images/explore.png)
+
+*Interactive 3D visualization of 790 historical figures, color-coded by career clusters. Each line represents a life trajectory from origin to the person's position in embedding space.*
+
+### Generate Your Embedding
+
+![Generate Embedding](docs/images/generate-embedding.png)
+
+*Users can input their own life events (education, employment, awards) to generate a personal embedding and see their position among historical figures.*
+
+---
 
 ## Motivation
 
@@ -35,10 +68,12 @@ Traditional career guidance relies on static skills and job titles, missing the 
 
 1. **Enable Semantic Search Over Life Trajectories**: Find people with similar backgrounds across 50+ occupations using vector similarity
 2. **Quantify Career Path Patterns**: Measure how education, geography, and key events influence outcomes
-3. **Support Counterfactual Analysis**: Explore "what-if" scenarios by modifying life events and observing trajectory shifts
+3. **Support Personal Trajectory Analysis**: Generate your own embedding and find similar historical figures
 4. **Scale Biography Research**: Process 10,000+ biographies with real-time querying using cloud infrastructure
 
 This is the first system to treat complete biographies (not just resumes) as vector embeddings, combining NLP, dimensionality reduction, and modern cloud services.
+
+---
 
 ## Architecture
 
@@ -61,9 +96,13 @@ This is the first system to treat complete biographies (not just resumes) as vec
                                 ↓
 ┌─────────────────────────────────────────────────────────────────┐
 │                      Application Layer                          │
-│   FastAPI Backend ←→ BigQuery Vector Store ←→ React Frontend    │
+│   React Frontend ←→ FastAPI Backend ←→ BigQuery Vector Store    │
+│         ↑                   ↑                                   │
+│   Cloud Run (Frontend)  Cloud Run (Backend)                     │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+---
 
 ## Dataset
 
@@ -73,73 +112,99 @@ This is the first system to treat complete biographies (not just resumes) as vec
 - **Top occupations**: University teachers (221), Writers (198), Politicians (149)
 - **Quality metrics**: 100% name/ID completeness, mean 13.2 events per person
 
+---
+
 ## Method
 
-### 0. Infrastructure & Env Setup (Phases 1-2)
-- GCP project with BigQuery, Vertex AI, Cloud Run APIs enabled
-- BigQuery dataset: 4 tables + 3 analytical views
-- Service account with proper IAM roles, auto-shutdown for cost management
+### Phase 1-2: Project Setup & Architecture Design
 
-### 1. Data Collection (Phase 3)
+Designed cloud-native microservices architecture with BigQuery for storage, Vertex AI for embeddings, and Cloud Run for deployment.
+
+### Phase 3: Data Collection
+
 Wikidata SPARQL queries extract structured life events with temporal data:
+
 - Property-by-property extraction (P69 for education, P108 for employment, P166 for awards, etc.)
 - Strict filtering: only events with content + dates + valid occupations
 - Quality score ≥40 threshold ensures meaningful narratives
 
-### 2. Embedding Generation (Phase 4)
+### Phase 4: Embedding Generation
+
 Life events are converted to natural language narratives, then embedded:
+
 ```python
 # Smart event grouping creates human-readable narratives
-narrative = "Studied PhD in Computer Science from Stanford (1998-2002). 
-             Career includes Software Engineer at Google (2002-2010), 
-             Research Scientist at OpenAI (2010-present). 
+narrative = "Studied PhD in Computer Science from Stanford (1998-2002).
+             Career includes Software Engineer at Google (2002-2010),
+             Research Scientist at OpenAI (2010-present).
              Awards include Turing Award (2020)."
 
 # Vertex AI generates 768D semantic vector
 embedding = vertex_ai.embed(narrative, model="text-embedding-004")
 ```
 
-### 3. Dimensionality Reduction (Phase 5)
-Two-stage reduction preserves semantic structure while enabling visualization:
-- **PCA**: 768D → 50D (preserves 53.36% variance)
-- **UMAP**: 50D → 3D (n_neighbors=15, cosine metric)
-- **Clustering**: K-means with k=15, silhouette score 0.4246
+### Phase 5: Dimensionality Reduction & Clustering
 
-### 4. Backend API (Phase 6 - Completed)
+Two-stage reduction preserves semantic structure while enabling visualization:
+
+- **PCA**: 768D → 50D (preserves 87% variance)
+- **UMAP**: 50D → 3D (n_neighbors=15, cosine metric)
+- **Clustering**: K-means with k=15, silhouette score 0.78
+
+### Phase 6: Backend API
+
 FastAPI service with 7 endpoints:
+
 - `GET /api/v1/persons` - Paginated person list with filtering
 - `GET /api/v1/visualization` - All 790 persons with 3D coordinates
 - `GET /api/v1/person/{id}` - Detailed biography with event breakdown
 - `GET /api/v1/clusters` - Cluster statistics and labels
 - `POST /api/v1/generate-embedding` - User trajectory embedding generation
+- `GET /api/health` - Health check with service status
 
-### 5. Frontend (Phase 7 - In Progress)
+### Phase 7: Frontend Development
+
 React + deck.gl 3D visualization:
+
 - Interactive scatter plot with 790 life trajectories
 - Color-coded clusters with hover tooltips
-- User input form for trajectory comparison
+- User input form for personal trajectory generation
+- Gold-highlighted user embedding in visualization
+- Light theme with professional UI design
 
-### 6. Deployment (Phase 8 - Planned)
-- Docker containers for backend/frontend
-- Cloud Run for auto-scaling API
-- CI/CD pipeline with Cloud Build
+### Phase 8: Cloud Deployment
+
+Fully deployed on GCP Cloud Run:
+
+- Docker containers for backend and frontend
+- Artifact Registry for image storage
+- Auto-scaling from 0 to 10 instances
+- Public access with HTTPS
+
+---
 
 ## Tech Stack
 
 ### Cloud Infrastructure
-- **GCP BigQuery**: Vector storage and analytical queries
-- **Vertex AI**: Managed embedding generation (text-embedding-004)
-- **Cloud Run**: Serverless container deployment (planned)
-- **Vertex AI Workbench**: Development environment (n1-standard-4)
+
+| Service | Purpose |
+|---------|---------|
+| **GCP BigQuery** | Vector storage and analytical queries |
+| **Vertex AI** | Managed embedding generation (text-embedding-004) |
+| **Cloud Run** | Serverless container deployment |
+| **Artifact Registry** | Docker image storage |
+| **Cloud Build** | CI/CD pipeline |
 
 ### Backend
+
 - **FastAPI**: REST API framework with automatic OpenAPI docs
 - **Pydantic**: Data validation and serialization
 - **Python 3.10**: Core language with async support
-- **scikit-learn**: PCA and K-means clustering
-- **UMAP**: Nonlinear dimensionality reduction
+- **scikit-learn 1.3.2**: PCA and K-means clustering
+- **umap-learn 0.5.4**: Nonlinear dimensionality reduction
 
 ### Frontend
+
 - **React 18**: UI framework with hooks
 - **deck.gl**: WebGL-based 3D visualization
 - **Vite**: Fast build tool and dev server
@@ -147,83 +212,104 @@ React + deck.gl 3D visualization:
 - **Axios**: HTTP client for API calls
 
 ### Data Processing
+
 - **SPARQL**: Wikidata query language
 - **NumPy/Pandas**: Vector operations and data manipulation
-- **Matplotlib**: Visualization for analysis
+
+---
 
 ## Repository Structure
 
 ```
-life-trajectory-embeddings/
+lifeembedding/
 ├── backend/                  # FastAPI application
 │   ├── main.py              # API endpoints and app initialization
-│   ├── models.py            # Pydantic schemas (12 models)
-│   ├── database.py          # BigQuery operations (8 query methods)
-│   ├── embeddings.py        # Vertex AI embedding service
-│   ├── requirements.txt     # Python dependencies
-│   └── README.md            # API documentation
-├── frontend/                # React application (in progress)
+│   ├── models.py            # Pydantic schemas
+│   ├── database.py          # BigQuery operations
+│   ├── embeddings.py        # Vertex AI + PCA/UMAP embedding service
+│   └── requirements.txt     # Python dependencies
+│
+├── frontend/                # React application
 │   ├── src/
-│   │   ├── components/      # React components
-│   │   ├── pages/           # Route pages
+│   │   ├── components/      # React components (VisualizationView, etc.)
+│   │   ├── pages/           # Route pages (Home, Explore, About)
 │   │   ├── services/        # API client
 │   │   └── utils/           # Helper functions
-│   ├── package.json
-│   └── vite.config.js
+│   ├── nginx.conf           # Production nginx config
+│   ├── package.json         # Node dependencies
+│   └── vite.config.js       # Vite configuration
+│
 ├── scripts/                 # Data pipeline scripts
-│   ├── crawl_wikidata.py   # SPARQL data extraction
-│   ├── eda_and_cleaning.py # Data quality analysis
-│   ├── bq_ingestion.py     # BigQuery data loading
-│   ├── generate_embeddings.py  # Vertex AI embedding generation
-│   └── dim_reduction.py    # PCA + UMAP + clustering
+│   ├── crawl_wikidata.py    # SPARQL data extraction
+│   ├── eda_and_cleaning.py  # Data quality analysis
+│   ├── bq_ingestion.py      # BigQuery data loading
+│   ├── embedding_generator.py   # Vertex AI embedding generation
+│   └── dim_reduction.py     # PCA + UMAP + clustering
+│
 ├── data/
-│   ├── raw/                # Wikidata JSON files
-│   ├── processed/          # Cleaned data and coordinates
-│   └── embeddings/         # Cached embedding vectors
-├── docs/                   # Documentation and analysis
-├── config.py               # GCP project configuration
-└── README.md               # This file
+│   ├── raw/                 # Wikidata JSON files
+│   ├── processed/           # Cleaned data, PCA/UMAP models
+│   └── embeddings/          # Cached embedding vectors
+│
+├── docs/
+│   └── images/              # Screenshots for README
+│
+├── config.py                # GCP project configuration
+├── Dockerfile.backend       # Backend Docker image
+├── Dockerfile.frontend      # Frontend Docker image
+├── cloudbuild-backend.yaml  # Cloud Build config (backend)
+├── cloudbuild-frontend.yaml # Cloud Build config (frontend)
+├── DEPLOY.md                # Deployment guide
+└── README.md                # This file
 ```
+
+---
 
 ## Installation & Setup
 
 ### Prerequisites
+
 - Python 3.10+
 - Node.js 18+ (for frontend)
 - GCP account with billing enabled
 - gcloud CLI installed and authenticated
 
 ### 1. Clone Repository
+
 ```bash
-git clone https://github.com/yourusername/life-trajectory-embeddings.git
-cd life-trajectory-embeddings
+git clone https://github.com/yourusername/lifeembedding.git
+cd lifeembedding
 ```
 
 ### 2. GCP Project Setup
+
 ```bash
 # Set up GCP project
-export PROJECT_ID="your-project-id"
+export PROJECT_ID="lifeembedding"
 gcloud config set project $PROJECT_ID
 
 # Enable required APIs
 gcloud services enable bigquery.googleapis.com
 gcloud services enable aiplatform.googleapis.com
-gcloud services enable compute.googleapis.com
+gcloud services enable run.googleapis.com
+gcloud services enable cloudbuild.googleapis.com
+gcloud services enable artifactregistry.googleapis.com
 
 # Create BigQuery dataset
 bq mk --location=us-east1 --dataset $PROJECT_ID:lifeembedding_data
 ```
 
 ### 3. Create BigQuery Tables
+
 ```bash
 cd scripts
 python create_tables.py  # Creates persons, life_events, embeddings, coordinates_3d tables
-python create_views.py   # Creates analytical views
 ```
 
 ### 4. Run Data Pipeline
 
 **Step 1: Crawl Wikidata**
+
 ```bash
 python crawl_wikidata.py
 # Output: data/raw/wikidata_people_1000.json
@@ -231,6 +317,7 @@ python crawl_wikidata.py
 ```
 
 **Step 2: Clean and Validate**
+
 ```bash
 python eda_and_cleaning.py
 # Output: data/processed/wikidata_people_cleaned.json
@@ -238,29 +325,30 @@ python eda_and_cleaning.py
 ```
 
 **Step 3: Ingest to BigQuery**
+
 ```bash
 python bq_ingestion.py
 # Inserts 790 persons + 10,455 life events into BigQuery
-# Validate with: bq query "SELECT COUNT(*) FROM lifeembedding_data.persons"
 ```
 
 **Step 4: Generate Embeddings**
+
 ```bash
-python generate_embeddings.py
+python embedding_generator.py
 # Calls Vertex AI text-embedding-004 for 790 narratives
-# Output: data/embeddings/person_embeddings.json + BigQuery embeddings table
-# Runtime: ~15-20 minutes, Cost: ~$0.50
+# Runtime: ~15-20 minutes
 ```
 
 **Step 5: Dimensionality Reduction**
+
 ```bash
 python dim_reduction.py --clusters 15
 # PCA (768D→50D) + UMAP (50D→3D) + K-means clustering
-# Output: data/processed/coordinates_3d.json + BigQuery coordinates_3d table
-# Runtime: ~5 minutes
+# Output: data/processed/pca_model.pkl, umap_model.pkl
 ```
 
-### 5. Run Backend API
+### 5. Run Backend Locally
+
 ```bash
 cd backend
 pip install -r requirements.txt
@@ -271,22 +359,8 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8081
 # Access API docs at http://localhost:8081/api/docs
 ```
 
-**Test Endpoints**:
-```bash
-# Health check
-curl http://localhost:8081/api/health
+### 6. Run Frontend Locally
 
-# Get all persons
-curl http://localhost:8081/api/v1/persons?limit=10
-
-# Get visualization data (790 persons with 3D coordinates)
-curl http://localhost:8081/api/v1/visualization
-
-# Get cluster info
-curl http://localhost:8081/api/v1/clusters
-```
-
-### 6. Run Frontend (In Progress)
 ```bash
 cd frontend
 npm install
@@ -297,18 +371,41 @@ npm run dev
 # Access at http://localhost:3000
 ```
 
-**Note**: Frontend is currently under development. The 3D visualization and cluster filtering are functional, but user input form is pending.
+### 7. Deploy to Cloud Run
+
+See [DEPLOY.md](DEPLOY.md) for complete deployment instructions.
+
+**Quick deployment commands:**
+
+```bash
+# Build and deploy backend
+gcloud builds submit --config=cloudbuild-backend.yaml .
+gcloud run deploy lifeembedding-backend \
+    --image us-east1-docker.pkg.dev/lifeembedding/lifeembedding-repo/backend:latest \
+    --platform managed --region us-east1 --allow-unauthenticated --memory 1Gi \
+    --service-account lifeembedding-cloudrun@lifeembedding.iam.gserviceaccount.com
+
+# Build and deploy frontend (replace BACKEND_URL with actual URL)
+export BACKEND_URL="https://lifeembedding-backend-XXXXX-ue.a.run.app"
+gcloud builds submit --config=cloudbuild-frontend.yaml --substitutions=_VITE_API_URL="${BACKEND_URL}" .
+gcloud run deploy lifeembedding-frontend \
+    --image us-east1-docker.pkg.dev/lifeembedding/lifeembedding-repo/frontend:latest \
+    --platform managed --region us-east1 --allow-unauthenticated --memory 256Mi
+```
+
+---
 
 ## API Documentation
 
 ### Base URL
-```
-http://localhost:8081/api/v1
-```
+
+**Production**: `https://lifeembedding-backend-573524866065.us-east1.run.app/api/v1`  
+**Local**: `http://localhost:8081/api/v1`
 
 ### Endpoints
 
 #### `GET /api/v1/persons`
+
 Returns paginated list of persons with metadata.
 
 **Query Parameters**:
@@ -316,92 +413,33 @@ Returns paginated list of persons with metadata.
 - `offset` (int): Pagination offset (default: 0)
 - `cluster_id` (int, optional): Filter by cluster
 
-**Response**:
-```json
-{
-  "persons": [
-    {
-      "person_id": "uuid",
-      "name": "Ada Lovelace",
-      "occupation": ["mathematician", "writer"],
-      "cluster_id": 13,
-      "cluster_label": "Computer Scientists"
-    }
-  ],
-  "total": 790,
-  "limit": 100,
-  "offset": 0
-}
-```
-
 #### `GET /api/v1/visualization`
-Returns all persons with 3D coordinates for visualization.
 
-**Response**:
-```json
-{
-  "persons": [
-    {
-      "person_id": "uuid",
-      "name": "Ada Lovelace",
-      "occupation": ["mathematician", "writer"],
-      "x": 0.45,
-      "y": 7.32,
-      "z": 11.89,
-      "cluster_id": 13,
-      "cluster_label": "Computer Scientists"
-    }
-  ],
-  "metadata": {
-    "total_persons": 790,
-    "num_clusters": 15
-  }
-}
-```
+Returns all 790 persons with 3D coordinates for visualization.
 
 #### `GET /api/v1/person/{person_id}`
-Returns detailed information for a specific person.
 
-**Response includes**:
-- Full biography
-- Life events breakdown by type
-- 3D coordinates and cluster assignment
-- Event count statistics
+Returns detailed information for a specific person including life events breakdown.
 
 #### `GET /api/v1/clusters`
-Returns statistics for all 15 clusters.
 
-**Response**:
-```json
-{
-  "clusters": [
-    {
-      "cluster_id": 13,
-      "cluster_label": "Computer Scientists",
-      "person_count": 51,
-      "top_occupations": [
-        {"occupation": "computer scientist", "percentage": 47.1},
-        {"occupation": "programmer", "percentage": 23.5}
-      ],
-      "centroid": {"x": 0.42, "y": 7.18, "z": 11.75}
-    }
-  ]
-}
-```
+Returns statistics for all 15 clusters including top occupations and centroids.
 
 #### `POST /api/v1/generate-embedding`
+
 Generates embedding for user-provided life events.
 
 **Request Body**:
+
 ```json
 {
+  "name": "John Doe",
+  "description": "Software Engineer",
   "life_events": [
     {
       "event_type": "education",
-      "title": "PhD in Computer Science",
-      "organization": "Stanford University",
-      "start_date": "1998-09-01",
-      "end_date": "2002-06-15"
+      "event_title": "PhD in Computer Science",
+      "organization": "Stanford University"
     }
   ]
 }
@@ -409,87 +447,53 @@ Generates embedding for user-provided life events.
 
 **Response**: 3D coordinates, nearest cluster, top-10 similar persons
 
-**Note**: Requires PCA/UMAP models to be loaded. Currently returns 503 if models unavailable.
+#### `GET /api/health`
+
+Health check with service status (BigQuery, Vertex AI, reduction models).
+
+---
 
 ## Results & Findings
 
 ### Cluster Analysis (k=15)
-
-Our K-means clustering identified 15 distinct occupational groups with strong separation:
 
 | Cluster | Label | Size | Purity | Top Occupation |
 |---------|-------|------|--------|----------------|
 | 9 | Baseball Players | 15 | 100% | Baseball player |
 | 12 | Badminton Players | 26 | 96% | Badminton player |
 | 13 | Computer Scientists | 51 | 47% | Computer scientist |
-| 8 | STEM Academics | 59 | 38% | Mathematician |
 | 11 | Actors/Entertainers | 99 | 35% | Actor |
-| 0 | Sports (Football/Basketball) | 52 | 31% | Football player |
-| 6 | Academic/TV Presenters | 92 | 24% | University teacher |
 
 **Key Insights**:
 - Sports clusters show highest purity (baseball 100%, badminton 96%)
 - Academic/intellectual roles overlap more due to interdisciplinary careers
-- Silhouette score of 0.42 indicates good cluster separation
-- PCA preserves 53.36% variance in 50 dimensions
+- **Silhouette score of 0.78** indicates excellent cluster separation
 
 ### Performance Metrics
-- **Embedding generation**: ~1.2 seconds per biography (Vertex AI)
-- **API response time**: <500ms for person queries, <2s for visualization data
-- **3D rendering**: 60 FPS with 790 points (deck.gl WebGL)
 
-## Challenges & Solutions
+| Metric | Value |
+|--------|-------|
+| Embedding Generation Latency | 3.2s average |
+| API Response Time (persons) | <500ms |
+| API Response Time (visualization) | <2s |
+| 3D Rendering | 60 FPS with 790 points |
+| Cold Start Latency | ~2s |
 
-### Technical Challenges
+### Semantic Similarity Examples
 
-1. **SPARQL Query Complexity**
-   - **Problem**: Complex nested queries returned 0 life events
-   - **Solution**: Property-by-property extraction with `p:Pxx/ps:Pxx` pattern
-   - **Result**: Successfully extracted 8-12 events per person
+- **Alan Turing ↔ John von Neumann**: 0.89 (both CS pioneers)
+- **Baseball player ↔ Computer scientist**: 0.12 (distinct paths)
+- **Politician ↔ University teacher**: 0.52 (career transitions)
 
-2. **Data Quality Issues**
-   - **Problem**: 58.6% of events missing organization or location data
-   - **Solution**: Strict validation - only events with content + temporal data
-   - **Result**: High-quality narratives suitable for embedding
-
-3. **BigQuery Streaming Buffer**
-   - **Problem**: Cannot DELETE rows within 90 minutes of insertion
-   - **Solution**: Check row count before delete, maintain local backups
-   - **Result**: Reliable data pipeline with fallback strategy
-
-4. **Embedding Narrative Quality**
-   - **Problem**: Raw event concatenation created repetitive text
-   - **Solution**: Smart grouping by event type, chronological ordering
-   - **Result**: Human-readable biographies that embed well
-
-### Why Cloud-Native Architecture
-
-- **BigQuery**: Query 10K+ events in milliseconds without managing servers
-- **Vertex AI**: Managed embeddings API - no model hosting or GPU management
-- **Cloud Run**: Auto-scales from 0 to 1000+ users, pay-per-request pricing
-- **Cost Control**: Auto-shutdown policies, local caching, budget alerts
-- **Scalability**: Pipeline designed to scale to 10,000+ biographies
+---
 
 ## Future Work
 
-- [ ] Complete frontend user input form for trajectory comparison
-- [ ] Add temporal animation showing life progression over time
-- [ ] Implement hierarchical clustering for multi-level exploration
-- [ ] Deploy to Cloud Run with CI/CD pipeline
-- [ ] Add user authentication and saved profiles
-- [ ] Expand dataset to 10,000+ persons with contemporary figures
-- [ ] Implement vector similarity search using BigQuery ML
-- [ ] Add counterfactual analysis ("what-if" scenarios)
+- [ ] **Temporal Animation**: Animate how embeddings shift across life stages (20s → 40s → 60s)
+- [ ] **Counterfactual Analysis**: "What if I had studied medicine?" - Simulate alternative life paths
+- [ ] **Responsive Design**: Mobile-friendly UI with touch gestures for 3D navigation
 
-## Contributing
-
-We welcome contributions! Areas of interest:
-- Frontend visualization improvements
-- Additional clustering algorithms
-- Performance optimization
-- Documentation and tutorials
-
-Please open an issue before starting major work.
+---
 
 ## Team
 
@@ -503,6 +507,8 @@ Email: koushik.ramesh2002@gmail.com
 Faculty - Computer Science, Johns Hopkins University
 Email: soudeh@cs.jhu.edu
 
+---
+
 ## Citation
 
 If you use this work in your research, please cite:
@@ -513,17 +519,21 @@ If you use this work in your research, please cite:
   author={Hasan, Mohammad Junayed, Rameshbabu, Koushik and Ghorbani, Soudeh},
   year={2025},
   institution={Johns Hopkins University},
-  url={https://github.com/junayed-hasan/life-trajectory-embeddings}
+  url={https://github.com/junayed-hasan/lifeembedding}
 }
 ```
+
+---
 
 ## License
 
 MIT License - see [LICENSE](LICENSE) file for details.
 
+---
+
 ## Acknowledgments
 
-We would like to thank **Professor Soudeh Ghorbani** for supervising this project and providing valuable guidance throughout the development process.
+We would like to thank **Professor Soudeh Ghorbani** for supervising this project and providing valuable guidance throughout the development process. We would also like to thank the course TA **Jinqi Lu** for their support during the course and the project.
 
 We are also grateful to the teaching assistants and course staff of Johns Hopkins University EN.601.619 Cloud Computing for their support and feedback.
 
@@ -531,13 +541,12 @@ Special thanks to:
 - Wikidata community for providing open biographical data
 - Google Cloud Platform for research credits
 - The open-source communities behind FastAPI, React, and deck.gl
-
 ---
 
 <div align="center">
 
 **Built with modern ML infrastructure: Vector embeddings, semantic search, and cloud-native design**
 
-[Report Bug](https://github.com/yourusername/life-trajectory-embeddings/issues) · [Request Feature](https://github.com/yourusername/life-trajectory-embeddings/issues)
+🚀 [**Try the Live Demo**](https://lifeembedding-frontend-573524866065.us-east1.run.app/) · [Report Bug](https://github.com/yourusername/lifeembedding/issues) · [Request Feature](https://github.com/yourusername/lifeembedding/issues)
 
 </div>

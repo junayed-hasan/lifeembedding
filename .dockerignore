@@ -1,0 +1,51 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+!README.md
+docs/
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+*.egg-info
+.venv
+venv
+env
+
+# Node
+frontend/node_modules
+frontend/dist
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Logs
+logs/
+*.log
+
+# Tests
+tests/
+*_test.py
+test_*.py
+
+# Local data (not needed in production)
+data/raw/
+data/embeddings/
+
+# Scripts (not needed in production)
+scripts/
+
+# NOTE: data/processed/ is NOT ignored - models are needed!
+
+# Misc
+.DS_Store
+*.sql
+

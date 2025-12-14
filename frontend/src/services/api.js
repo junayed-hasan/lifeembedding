@@ -1,10 +1,22 @@
 import axios from 'axios';
 
-// API Base URL - Use proxy path for Workbench or direct localhost
-// When accessing through Workbench proxy, backend is also proxied
-const API_BASE_URL = window.location.hostname === 'localhost' 
-  ? 'http://localhost:8081/api/v1'
-  : '/proxy/8081/api/v1';
+// API Base URL configuration:
+// 1. If VITE_API_URL is set (production), use it
+// 2. If localhost, use direct connection
+// 3. Otherwise (Workbench), use proxy path
+const getApiBaseUrl = () => {
+  // Check for environment variable (set at build time for production)
+  if (import.meta.env.VITE_API_URL) {
+    return `${import.meta.env.VITE_API_URL}/api/v1`;
+  }
+  // Development or Workbench
+  if (window.location.hostname === 'localhost') {
+    return 'http://localhost:8081/api/v1';
+  }
+  return '/proxy/8081/api/v1';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -78,11 +90,17 @@ export const apiService = {
   // Health check
   healthCheck: async () => {
     try {
-      const baseURL = window.location.hostname === 'localhost'
-        ? 'http://localhost:8081/api'
-        : '/proxy/8081/api';
+      const getHealthUrl = () => {
+        if (import.meta.env.VITE_API_URL) {
+          return `${import.meta.env.VITE_API_URL}/api`;
+        }
+        if (window.location.hostname === 'localhost') {
+          return 'http://localhost:8081/api';
+        }
+        return '/proxy/8081/api';
+      };
       const response = await api.get('/health', {
-        baseURL: baseURL,
+        baseURL: getHealthUrl(),
       });
       return response.data;
     } catch (error) {
@@ -92,14 +110,16 @@ export const apiService = {
   },
 
   // Generate user embedding (optional - may not work if models not loaded)
-  generateEmbedding: async (lifeEvents) => {
+  generateEmbedding: async (requestData) => {
     try {
-      const response = await api.post('/generate-embedding', {
-        life_events: lifeEvents,
-      });
+      const response = await api.post('/generate-embedding', requestData);
       return response.data;
     } catch (error) {
       console.error('Error generating embedding:', error);
+      // Provide more detailed error message
+      if (error.response) {
+        throw new Error(error.response.data?.detail || 'Failed to generate embedding');
+      }
       throw error;
     }
   },

@@ -1,0 +1,22 @@
+# Cloud Build config for frontend with build args
+steps:
+  # Build the frontend image with VITE_API_URL
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-f'
+      - 'Dockerfile.frontend'
+      - '--build-arg'
+      - 'VITE_API_URL=${_VITE_API_URL}'
+      - '-t'
+      - 'us-east1-docker.pkg.dev/lifeembedding/lifeembedding-repo/frontend:latest'
+      - '.'
+
+# Push the image
+images:
+  - 'us-east1-docker.pkg.dev/lifeembedding/lifeembedding-repo/frontend:latest'
+
+# Substitution variables (can be overridden at build time)
+substitutions:
+  _VITE_API_URL: ''
+

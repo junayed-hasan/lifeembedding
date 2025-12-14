@@ -21,6 +21,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import json
 import os
+import pickle
 
 # Scientific computing libraries
 from sklearn.decomposition import PCA
@@ -452,6 +453,40 @@ class DimensionalityReducer:
         self._coordinates_saved_locally = True
         print(f"✓ Saved {len(data['coordinates'])} coordinates locally")
     
+    def save_models(self, 
+                    pca_path: str = 'data/processed/pca_model.pkl',
+                    umap_path: str = 'data/processed/umap_model.pkl'):
+        """
+        Save trained PCA and UMAP models for future use
+        
+        Args:
+            pca_path: Path to save PCA model
+            umap_path: Path to save UMAP model
+        """
+        print(f"\nSaving trained models...")
+        
+        try:
+            # Ensure directory exists
+            os.makedirs(os.path.dirname(pca_path), exist_ok=True)
+            os.makedirs(os.path.dirname(umap_path), exist_ok=True)
+            
+            # Save PCA model
+            with open(pca_path, 'wb') as f:
+                pickle.dump(self.pca_model, f)
+            print(f"✓ Saved PCA model to {pca_path}")
+            
+            # Save UMAP model
+            with open(umap_path, 'wb') as f:
+                pickle.dump(self.umap_model, f)
+            print(f"✓ Saved UMAP model to {umap_path}")
+            
+            print(f"✓ Models saved successfully")
+            print(f"  These models can now be used to transform new user embeddings")
+            
+        except Exception as e:
+            print(f"✗ Error saving models: {e}")
+            raise
+    
     def visualize_3d_clusters(self, output_path: str = 'data/processed/visualization_3d.png'):
         """
         Create 3D scatter plot of clusters
@@ -527,7 +562,10 @@ class DimensionalityReducer:
         if num_inserted == 0 or not hasattr(self, '_coordinates_saved_locally'):
             self.save_coordinates_locally()
         
-        # Step 7: Visualize
+        # Step 7: Save trained models (for user embedding generation)
+        self.save_models()
+        
+        # Step 8: Visualize
         self.visualize_3d_clusters()
         
         print("\n" + "="*60)

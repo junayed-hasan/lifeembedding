@@ -1,0 +1,46 @@
+# Backend Dockerfile - Build from project root
+# Using Python 3.10 to match the version used to create pickle models
+FROM python:3.10-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements and install dependencies
+COPY backend/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy config from root
+COPY config.py .
+
+# Copy backend code
+COPY backend/*.py ./
+
+# Create data directories
+RUN mkdir -p /app/data/processed /app/data/embeddings
+
+# Copy PCA/UMAP models (REQUIRED for user embedding generation)
+# Using a glob pattern to copy all pkl files
+COPY data/processed/*.pkl /app/data/processed/
+
+# Verify models exist (build will FAIL if missing - helps debugging)
+RUN echo "=== Checking model files ===" && \
+    ls -la /app/data/processed/ && \
+    test -f /app/data/processed/pca_model.pkl || (echo "ERROR: pca_model.pkl missing!" && exit 1) && \
+    test -f /app/data/processed/umap_model.pkl || (echo "ERROR: umap_model.pkl missing!" && exit 1) && \
+    echo "=== Models verified successfully ==="
+
+# Set environment variables
+ENV APP_DIR=/app
+ENV PYTHONUNBUFFERED=1
+
+# Expose port (Cloud Run expects 8080)
+EXPOSE 8080
+
+# Run the application
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
+

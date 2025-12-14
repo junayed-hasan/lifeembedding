@@ -62,19 +62,43 @@ async def startup_event():
     """Load PCA/UMAP models and cache data at startup"""
     global _models_loaded, _pca_model, _umap_model
     
+    import pickle
+    
     print("Loading reduction models from file...")
     
-    # Try to load from local coordinates file
-    coords_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), 
-                               'data', 'processed', 'coordinates_3d.json')
+    # Get paths to model files (use /app as base in Docker)
+    base_dir = os.getenv('APP_DIR', '/app')
+    pca_path = os.path.join(base_dir, 'data', 'processed', 'pca_model.pkl')
+    umap_path = os.path.join(base_dir, 'data', 'processed', 'umap_model.pkl')
+    coords_file = os.path.join(base_dir, 'data', 'processed', 'coordinates_3d.json')
     
-    if os.path.exists(coords_file):
-        print(f"  Found coordinates file: {coords_file}")
-        # Models will be loaded lazily when needed
-        # For now, just verify the file exists
-        _models_loaded = True
+    # Check if model files exist
+    if os.path.exists(pca_path) and os.path.exists(umap_path):
+        try:
+            # Load PCA model
+            with open(pca_path, 'rb') as f:
+                _pca_model = pickle.load(f)
+            print(f"  ✓ Loaded PCA model from {pca_path}")
+            
+            # Load UMAP model
+            with open(umap_path, 'rb') as f:
+                _umap_model = pickle.load(f)
+            print(f"  ✓ Loaded UMAP model from {umap_path}")
+            
+            # Pass models to embedding service
+            embedding_service.load_reduction_models(_pca_model, _umap_model)
+            
+            _models_loaded = True
+            print(f"  ✓ Models loaded successfully - user embedding generation available")
+            
+        except Exception as e:
+            print(f"  ✗ Error loading models: {e}")
+            print(f"  User embedding generation will not be available")
     else:
-        print(f"  Warning: Coordinates file not found at {coords_file}")
+        print(f"  Warning: Model files not found")
+        print(f"    PCA model: {pca_path} - {'exists' if os.path.exists(pca_path) else 'missing'}")
+        print(f"    UMAP model: {umap_path} - {'exists' if os.path.exists(umap_path) else 'missing'}")
+        print(f"  Please run scripts/dim_reduction.py to generate models")
         print(f"  User embedding generation will not be available")
 
 
